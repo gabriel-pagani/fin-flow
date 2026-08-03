@@ -3,7 +3,7 @@ from reversion.admin import VersionAdmin
 import reversion
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin, GroupAdmin as BaseGroupAdmin
 from django.contrib.auth.models import Group as BaseGroup
-from .models import User, Group
+from .models import User, Group, Account, Type, Method, Category
 
 
 # User Admin
@@ -46,3 +46,27 @@ admin.site.unregister(BaseGroup)
 @admin.register(Group)
 class GroupAdmin(VersionAdmin, BaseGroupAdmin):
     ...
+
+
+@admin.register(Account)
+class AccountAdmin(VersionAdmin):
+    list_display = ('description',)
+    search_fields = ('description',)
+
+
+@admin.register(Type)
+class TypeAdmin(VersionAdmin):
+    list_display = ('description',)
+    search_fields = ('description',)
+
+
+@admin.register(Method)
+class MethodAdmin(VersionAdmin):
+    list_display = ('description',)
+    search_fields = ('description',)
+
+
+@admin.register(Category)
+class CategoryAdmin(VersionAdmin):
+    list_display = ('description',)
+    search_fields = ('description',)
