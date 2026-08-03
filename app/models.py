@@ -97,8 +97,9 @@ class Transaction(models.Model):
 
     def clean(self):
         super().clean()
-        if not BusinessRule.objects.filter(account=self.account, type=self.type, method=self.method).exists():
-            raise ValidationError('Combinação de conta, tipo e método não permitida pelas regras de negócio.')
+        if self.account_id and self.type_id and self.method_id:
+            if not BusinessRule.objects.filter(account=self.account, type=self.type, method=self.method).exists():
+                raise ValidationError('Combinação de conta, tipo e método não permitida pelas regras de negócio.')
 
     def __str__(self):
         return f'{self.category} (R${self.value})'
