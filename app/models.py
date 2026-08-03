@@ -71,5 +71,39 @@ class Category(models.Model):
         verbose_name_plural = 'Categorias'
 
 
+class BusinessRule(models.Model):
+    account = models.ForeignKey(Account, on_delete=models.CASCADE, verbose_name='Conta')
+    type = models.ForeignKey(Type, on_delete=models.CASCADE, verbose_name='Tipo')
+    method = models.ForeignKey(Method, on_delete=models.CASCADE, verbose_name='Método')
+
+    def __str__(self):
+        return f'{self.account} / {self.type} / {self.method}'
+
+    class Meta:
+        ordering = ['account__description', 'type__description', 'method__description']
+        unique_together = ('account', 'type', 'method')
+        verbose_name = 'Regra de Negócio'
+        verbose_name_plural = 'Regras de Negócio'
+
+
 class Transaction(models.Model):
-    ...
+    account = models.ForeignKey(Account, on_delete=models.PROTECT, verbose_name='Conta')
+    type = models.ForeignKey(Type, on_delete=models.PROTECT, verbose_name='Tipo')
+    method = models.ForeignKey(Method, on_delete=models.PROTECT, verbose_name='Método')
+    category = models.ForeignKey(Category, on_delete=models.PROTECT, verbose_name='Categoria')
+    description = models.CharField(max_length=200, blank=True, null=True, verbose_name='Descrição')
+    value = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='Valor')
+    datetime = models.DateTimeField(verbose_name='Data e Hora')
+
+    def clean(self):
+        super().clean()
+        if not BusinessRule.objects.filter(account=self.account, type=self.type, method=self.method).exists():
+            raise ValidationError('Combinação de conta, tipo e método não permitida pelas regras de negócio.')
+
+    def __str__(self):
+        return f'{self.category} (R${self.value})'
+
+    class Meta:
+        ordering = ['-datetime']
+        verbose_name = 'Transação'
+        verbose_name_plural = 'Transações'
