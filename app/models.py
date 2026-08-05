@@ -1,6 +1,16 @@
+from decimal import Decimal, ROUND_DOWN
 from django.db import models
 from django.contrib.auth.models import AbstractUser, Group as BaseGroup
 from django.core.exceptions import ValidationError
+
+
+def add_months(dt, months):
+    month = dt.month - 1 + months
+    year = dt.year + month // 12
+    month = month % 12 + 1
+    day = min(dt.day, [31, 29 if year % 4 == 0 and (year % 100 != 0 or year % 400 == 0) else 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1])
+
+    return dt.replace(year=year, month=month, day=day)
 
 
 class User(AbstractUser):
@@ -86,6 +96,62 @@ class BusinessRule(models.Model):
         verbose_name_plural = 'Regras de Negócio'
 
 
+class Installment(models.Model):
+    account = models.ForeignKey(Account, on_delete=models.PROTECT, verbose_name='Conta')
+    type = models.ForeignKey(Type, on_delete=models.PROTECT, verbose_name='Tipo')
+    method = models.ForeignKey(Method, on_delete=models.PROTECT, verbose_name='Método')
+    category = models.ForeignKey(Category, on_delete=models.PROTECT, verbose_name='Categoria')
+    description = models.CharField(max_length=200, blank=True, null=True, verbose_name='Descrição')
+    value = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='Valor Total')
+    installments = models.PositiveSmallIntegerField(verbose_name='Número de Parcelas')
+    datetime = models.DateTimeField(verbose_name='Data e Hora')
+
+    def clean(self):
+        super().clean()
+        if self.account_id and self.type_id and self.method_id:
+            if not BusinessRule.objects.filter(account=self.account, type=self.type, method=self.method).exists():
+                raise ValidationError('Combinação de conta, tipo e método não permitida pelas regras de negócio.')
+        if self.installments is not None and self.installments < 2:
+            raise ValidationError({'installments': 'Um parcelamento deve ter no mínimo 2 parcelas.'})
+
+    def generate_transactions(self):
+        self.transactions.all().delete()
+
+        base_value = (self.value / self.installments).quantize(Decimal('0.01'), rounding=ROUND_DOWN)
+        last_value = self.value - base_value * (self.installments - 1)
+
+        transactions = []
+        for i in range(self.installments):
+            parcel_value = last_value if i == self.installments - 1 else base_value
+            transactions.append(Transaction(
+                account=self.account,
+                type=self.type,
+                method=self.method,
+                category=self.category,
+                description=self.description,
+                value=parcel_value,
+                datetime=add_months(self.datetime, i),
+                installment=self,
+                parcel=i + 1,
+            ))
+
+        Transaction.objects.bulk_create(transactions)
+
+    def save(self, *args, **kwargs):
+        is_new = self._state.adding
+        super().save(*args, **kwargs)
+        if is_new:
+            self.generate_transactions()
+
+    def __str__(self):
+        return f'R${self.value} ({self.installments}x)'
+
+    class Meta:
+        ordering = ['-datetime']
+        verbose_name = 'Parcelamento'
+        verbose_name_plural = 'Parcelamentos'
+
+
 class Transaction(models.Model):
     account = models.ForeignKey(Account, on_delete=models.PROTECT, verbose_name='Conta')
     type = models.ForeignKey(Type, on_delete=models.PROTECT, verbose_name='Tipo')
@@ -95,6 +161,9 @@ class Transaction(models.Model):
     value = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='Valor')
     datetime = models.DateTimeField(verbose_name='Data e Hora')
 
+    installment = models.ForeignKey(Installment, on_delete=models.CASCADE, related_name='transactions', blank=True, null=True, verbose_name='Parcelamento')
+    parcel = models.PositiveSmallIntegerField(blank=True, null=True, verbose_name='Parcela')
+
     def clean(self):
         super().clean()
         if self.account_id and self.type_id and self.method_id:
@@ -102,6 +171,8 @@ class Transaction(models.Model):
                 raise ValidationError('Combinação de conta, tipo e método não permitida pelas regras de negócio.')
 
     def __str__(self):
+        if self.installment_id:
+            return f'{self.category} (R${self.value}) - {self.parcel}/{self.installment.installments}'
         return f'{self.category} (R${self.value})'
 
     class Meta:

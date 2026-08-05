@@ -3,7 +3,7 @@ from reversion.admin import VersionAdmin
 import reversion
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin, GroupAdmin as BaseGroupAdmin
 from django.contrib.auth.models import Group as BaseGroup
-from .models import User, Group, Account, Type, Method, Category, BusinessRule, Transaction
+from .models import User, Group, Account, Type, Method, Category, BusinessRule, Installment, Transaction
 
 
 # User Admin
@@ -79,8 +79,20 @@ class BusinessRuleAdmin(VersionAdmin):
     search_fields = ('account__description', 'type__description', 'method__description',)
 
 
+@admin.register(Installment)
+class InstallmentAdmin(VersionAdmin):
+    list_display = ('account', 'type', 'method', 'category', 'description', 'value', 'installments', 'datetime',)
+    list_filter = ('account', 'type', 'method', 'category',)
+    search_fields = ('description',)
+
+
 @admin.register(Transaction)
 class TransactionAdmin(VersionAdmin):
     list_display = ('account', 'type', 'method', 'category', 'description', 'value', 'datetime',)
     list_filter = ('account', 'type', 'method', 'category',)
     search_fields = ('description',)
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj and obj.installment_id:
+            return ('account', 'type', 'method', 'category', 'description', 'value', 'installment', 'parcel', 'datetime',)
+        return ('installment', 'parcel',)
