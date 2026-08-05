@@ -1,4 +1,5 @@
 from decimal import Decimal, ROUND_DOWN
+from django.conf import settings
 from django.db import models
 from django.contrib.auth.models import AbstractUser, Group as BaseGroup
 from django.core.exceptions import ValidationError
@@ -97,6 +98,7 @@ class BusinessRule(models.Model):
 
 
 class Installment(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='installments', verbose_name='Usuário')
     account = models.ForeignKey(Account, on_delete=models.PROTECT, verbose_name='Conta')
     type = models.ForeignKey(Type, on_delete=models.PROTECT, verbose_name='Tipo')
     method = models.ForeignKey(Method, on_delete=models.PROTECT, verbose_name='Método')
@@ -124,6 +126,7 @@ class Installment(models.Model):
         for i in range(self.installments):
             parcel_value = last_value if i == self.installments - 1 else base_value
             transactions.append(Transaction(
+                user=self.user,
                 account=self.account,
                 type=self.type,
                 method=self.method,
@@ -153,6 +156,7 @@ class Installment(models.Model):
 
 
 class Transaction(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='transactions_owned', verbose_name='Usuário')
     account = models.ForeignKey(Account, on_delete=models.PROTECT, verbose_name='Conta')
     type = models.ForeignKey(Type, on_delete=models.PROTECT, verbose_name='Tipo')
     method = models.ForeignKey(Method, on_delete=models.PROTECT, verbose_name='Método')

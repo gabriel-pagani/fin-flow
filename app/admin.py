@@ -82,18 +82,18 @@ class BusinessRuleAdmin(VersionAdmin):
 
 @admin.register(Installment)
 class InstallmentAdmin(VersionAdmin):
-    list_display = ('account', 'type', 'method', 'category', 'description', 'value', 'installments', 'datetime',)
-    list_filter = ('account', 'type', 'method', 'category',)
+    list_display = ('user', 'account', 'type', 'method', 'category', 'description', 'value', 'installments', 'datetime',)
+    list_filter = ('user', 'account', 'type', 'method', 'category',)
     search_fields = ('description',)
-    autocomplete_fields = ('account', 'type', 'method', 'category',)
+    autocomplete_fields = ('user', 'account', 'type', 'method', 'category',)
 
 
 @admin.register(Transaction)
 class TransactionAdmin(VersionAdmin):
-    list_display = ('account', 'type', 'method', 'category', 'description', 'value', 'datetime',)
-    list_filter = ('account', 'type', 'method', 'category',)
+    list_display = ('user', 'account', 'type', 'method', 'category', 'description', 'value', 'datetime',)
+    list_filter = ('user', 'account', 'type', 'method', 'category',)
     search_fields = ('description',)
-    autocomplete_fields = ('account', 'type', 'method', 'category',)
+    autocomplete_fields = ('user', 'account', 'type', 'method', 'category',)
 
     def get_readonly_fields(self, request, obj=None):
         if obj and obj.installment_id:
