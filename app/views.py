@@ -24,7 +24,7 @@ def api_transactions(request):
         response['WWW-Authenticate'] = 'Basic realm="api", charset="UTF-8"'
         return response
 
-    queryset = Transaction.objects.select_related('user', 'account', 'type', 'method', 'category')
+    queryset = Transaction.objects.select_related('user', 'account', 'category')
 
     if not (user.is_staff and user.has_perm('app.view_transaction')):
         queryset = queryset.filter(user=user)
@@ -33,8 +33,8 @@ def api_transactions(request):
         {
             'holder': transaction.user.get_full_name() or transaction.user.get_username(),
             'account': transaction.account.description,
-            'type': transaction.type.description,
-            'method': transaction.method.description,
+            'type': transaction.get_type_display(),
+            'method': transaction.get_method_display(),
             'category': transaction.category.description,
             'description': transaction.description,
             'value': float(transaction.value),

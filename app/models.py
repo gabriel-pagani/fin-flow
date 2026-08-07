@@ -34,6 +34,17 @@ class Group(BaseGroup):
         app_label = 'app'
 
 
+class Type(models.TextChoices):
+    IN = 'IN', 'Entrada'
+    OUT = 'OUT', 'Saída'
+
+
+class Method(models.TextChoices):
+    CREDIT = 'CREDIT', 'Crédito'
+    DEBIT = 'DEBIT', 'Débito'
+    NOT_APPLICABLE = 'NOT_APPLICABLE', 'Não Se Aplica'
+
+
 class Account(models.Model):
     description = models.CharField(max_length=100, unique=True, verbose_name='Conta')
 
@@ -44,30 +55,6 @@ class Account(models.Model):
         ordering = ['description']
         verbose_name = 'Conta'
         verbose_name_plural = 'Contas'
-
-
-class Type(models.Model):
-    description = models.CharField(max_length=100, unique=True, verbose_name='Tipo')
-
-    def __str__(self):
-        return self.description
-
-    class Meta:
-        ordering = ['description']
-        verbose_name = 'Tipo'
-        verbose_name_plural = 'Tipos'
-
-
-class Method(models.Model):
-    description = models.CharField(max_length=100, unique=True, verbose_name='Método')
-
-    def __str__(self):
-        return self.description
-
-    class Meta:
-        ordering = ['description']
-        verbose_name = 'Método'
-        verbose_name_plural = 'Métodos'
 
 
 class Category(models.Model):
@@ -84,14 +71,14 @@ class Category(models.Model):
 
 class BusinessRule(models.Model):
     account = models.ForeignKey(Account, on_delete=models.CASCADE, verbose_name='Conta')
-    type = models.ForeignKey(Type, on_delete=models.CASCADE, verbose_name='Tipo')
-    method = models.ForeignKey(Method, on_delete=models.CASCADE, verbose_name='Método')
+    type = models.CharField(max_length=20, choices=Type.choices, verbose_name='Tipo')
+    method = models.CharField(max_length=20, choices=Method.choices, verbose_name='Método')
 
     def __str__(self):
-        return f'{self.account} / {self.type} / {self.method}'
+        return f'{self.account} / {self.get_type_display()} / {self.get_method_display()}'
 
     class Meta:
-        ordering = ['account__description', 'type__description', 'method__description']
+        ordering = ['account__description', 'type', 'method']
         unique_together = ('account', 'type', 'method')
         verbose_name = 'Regra de Negócio'
         verbose_name_plural = 'Regras de Negócio'
@@ -100,8 +87,8 @@ class BusinessRule(models.Model):
 class Installment(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='installments', verbose_name='Usuário')
     account = models.ForeignKey(Account, on_delete=models.PROTECT, verbose_name='Conta')
-    type = models.ForeignKey(Type, on_delete=models.PROTECT, verbose_name='Tipo')
-    method = models.ForeignKey(Method, on_delete=models.PROTECT, verbose_name='Método')
+    type = models.CharField(max_length=20, choices=Type.choices, verbose_name='Tipo')
+    method = models.CharField(max_length=20, choices=Method.choices, verbose_name='Método')
     category = models.ForeignKey(Category, on_delete=models.PROTECT, verbose_name='Categoria')
     description = models.CharField(max_length=200, blank=True, null=True, verbose_name='Descrição')
     value = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='Valor Total')
@@ -110,7 +97,7 @@ class Installment(models.Model):
 
     def clean(self):
         super().clean()
-        if self.account_id and self.type_id and self.method_id:
+        if self.account_id and self.type and self.method:
             if not BusinessRule.objects.filter(account=self.account, type=self.type, method=self.method).exists():
                 raise ValidationError('Combinação de conta, tipo e método não permitida pelas regras de negócio.')
         if self.installments is not None and self.installments < 2:
@@ -158,8 +145,8 @@ class Installment(models.Model):
 class Transaction(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='transactions_owned', verbose_name='Usuário')
     account = models.ForeignKey(Account, on_delete=models.PROTECT, verbose_name='Conta')
-    type = models.ForeignKey(Type, on_delete=models.PROTECT, verbose_name='Tipo')
-    method = models.ForeignKey(Method, on_delete=models.PROTECT, verbose_name='Método')
+    type = models.CharField(max_length=20, choices=Type.choices, verbose_name='Tipo')
+    method = models.CharField(max_length=20, choices=Method.choices, verbose_name='Método')
     category = models.ForeignKey(Category, on_delete=models.PROTECT, verbose_name='Categoria')
     description = models.CharField(max_length=200, blank=True, null=True, verbose_name='Descrição')
     value = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='Valor')
@@ -170,7 +157,7 @@ class Transaction(models.Model):
 
     def clean(self):
         super().clean()
-        if self.account_id and self.type_id and self.method_id:
+        if self.account_id and self.type and self.method:
             if not BusinessRule.objects.filter(account=self.account, type=self.type, method=self.method).exists():
                 raise ValidationError('Combinação de conta, tipo e método não permitida pelas regras de negócio.')
 

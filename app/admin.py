@@ -3,7 +3,7 @@ from reversion.admin import VersionAdmin
 import reversion
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin, GroupAdmin as BaseGroupAdmin
 from django.contrib.auth.models import Group as BaseGroup
-from .models import User, Group, Account, Type, Method, Category, BusinessRule, Installment, Transaction
+from .models import User, Group, Account, Category, BusinessRule, Installment, Transaction
 
 
 # User Admin
@@ -54,18 +54,6 @@ class AccountAdmin(VersionAdmin):
     search_fields = ('description',)
 
 
-@admin.register(Type)
-class TypeAdmin(VersionAdmin):
-    list_display = ('description',)
-    search_fields = ('description',)
-
-
-@admin.register(Method)
-class MethodAdmin(VersionAdmin):
-    list_display = ('description',)
-    search_fields = ('description',)
-
-
 @admin.register(Category)
 class CategoryAdmin(VersionAdmin):
     list_display = ('description',)
@@ -76,8 +64,8 @@ class CategoryAdmin(VersionAdmin):
 class BusinessRuleAdmin(VersionAdmin):
     list_display = ('account', 'type', 'method',)
     list_filter = ('account', 'type', 'method',)
-    search_fields = ('account__description', 'type__description', 'method__description',)
-    autocomplete_fields = ('account', 'type', 'method',)
+    search_fields = ('account__description',)
+    autocomplete_fields = ('account',)
 
 
 @admin.register(Installment)
@@ -85,7 +73,7 @@ class InstallmentAdmin(VersionAdmin):
     list_display = ('user', 'account', 'type', 'method', 'category', 'description', 'value', 'installments', 'datetime',)
     list_filter = ('user', 'account', 'type', 'method', 'category',)
     search_fields = ('description',)
-    autocomplete_fields = ('user', 'account', 'type', 'method', 'category',)
+    autocomplete_fields = ('user', 'account', 'category',)
 
 
 @admin.register(Transaction)
@@ -93,7 +81,7 @@ class TransactionAdmin(VersionAdmin):
     list_display = ('user', 'account', 'type', 'method', 'category', 'description', 'value', 'datetime',)
     list_filter = ('user', 'account', 'type', 'method', 'category',)
     search_fields = ('description',)
-    autocomplete_fields = ('user', 'account', 'type', 'method', 'category',)
+    autocomplete_fields = ('user', 'account', 'category',)
     actions = ('duplicate_transactions',)
 
     @admin.action(description='Duplicar Transações selecionados', permissions=['add'])
