@@ -94,6 +94,28 @@ class TransactionAdmin(VersionAdmin):
     list_filter = ('user', 'account', 'type', 'method', 'category',)
     search_fields = ('description',)
     autocomplete_fields = ('user', 'account', 'type', 'method', 'category',)
+    actions = ('duplicate_transactions',)
+
+    @admin.action(description='Duplicar Transações selecionados', permissions=['add'])
+    def duplicate_transactions(self, request, queryset):
+        with reversion.create_revision():
+            reversion.set_user(request.user)
+            reversion.set_comment('Duplicado a partir de transação existente.')
+            count = 0
+            for transaction in queryset:
+                Transaction.objects.create(
+                    user=transaction.user,
+                    account=transaction.account,
+                    type=transaction.type,
+                    method=transaction.method,
+                    category=transaction.category,
+                    description=transaction.description,
+                    value=transaction.value,
+                    datetime=transaction.datetime,
+                )
+                count += 1
+
+        self.message_user(request, f'{count} transação(ões) duplicada(s) com sucesso.')
 
     def get_readonly_fields(self, request, obj=None):
         if obj and obj.installment_id:
