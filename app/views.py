@@ -35,7 +35,7 @@ def api_transactions(request):
             'account': transaction.account.description,
             'type': transaction.get_type_display(),
             'method': transaction.get_method_display(),
-            'category': transaction.category.description,
+            'category': transaction.category_display,
             'description': transaction.description,
             'value': float(transaction.value),
             'datetime': transaction.datetime.isoformat()

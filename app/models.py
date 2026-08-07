@@ -89,7 +89,7 @@ class Installment(models.Model):
     account = models.ForeignKey(Account, on_delete=models.PROTECT, verbose_name='Conta')
     type = models.CharField(max_length=20, choices=Type.choices, verbose_name='Tipo')
     method = models.CharField(max_length=20, choices=Method.choices, verbose_name='Método')
-    category = models.ForeignKey(Category, on_delete=models.PROTECT, verbose_name='Categoria')
+    category = models.ForeignKey(Category, on_delete=models.PROTECT, blank=True, null=True, verbose_name='Categoria')
     description = models.CharField(max_length=200, blank=True, null=True, verbose_name='Descrição')
     value = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='Valor Total')
     installments = models.PositiveSmallIntegerField(verbose_name='Número de Parcelas')
@@ -133,6 +133,10 @@ class Installment(models.Model):
         if is_new:
             self.generate_transactions()
 
+    @property
+    def category_display(self):
+        return str(self.category) if self.category_id else 'Categoria Não Identificada'
+
     def __str__(self):
         return f'R${self.value} ({self.installments}x)'
 
@@ -147,7 +151,7 @@ class Transaction(models.Model):
     account = models.ForeignKey(Account, on_delete=models.PROTECT, verbose_name='Conta')
     type = models.CharField(max_length=20, choices=Type.choices, verbose_name='Tipo')
     method = models.CharField(max_length=20, choices=Method.choices, verbose_name='Método')
-    category = models.ForeignKey(Category, on_delete=models.PROTECT, verbose_name='Categoria')
+    category = models.ForeignKey(Category, on_delete=models.PROTECT, blank=True, null=True, verbose_name='Categoria')
     description = models.CharField(max_length=200, blank=True, null=True, verbose_name='Descrição')
     value = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='Valor')
     datetime = models.DateTimeField(verbose_name='Data e Hora')
@@ -161,10 +165,14 @@ class Transaction(models.Model):
             if not BusinessRule.objects.filter(account=self.account, type=self.type, method=self.method).exists():
                 raise ValidationError('Combinação de conta, tipo e método não permitida pelas regras de negócio.')
 
+    @property
+    def category_display(self):
+        return str(self.category) if self.category_id else 'Categoria Não Identificada'
+
     def __str__(self):
         if self.installment_id:
-            return f'{self.category} (R${self.value}) - {self.parcel}/{self.installment.installments}'
-        return f'{self.category} (R${self.value})'
+            return f'{self.category_display} (R${self.value}) - {self.parcel}/{self.installment.installments}'
+        return f'{self.category_display} (R${self.value})'
 
     class Meta:
         ordering = ['-datetime']

@@ -70,19 +70,27 @@ class BusinessRuleAdmin(VersionAdmin):
 
 @admin.register(Installment)
 class InstallmentAdmin(VersionAdmin):
-    list_display = ('user', 'account', 'type', 'method', 'category', 'description', 'value', 'installments', 'datetime',)
+    list_display = ('user', 'account', 'type', 'method', 'category_display', 'description', 'value', 'installments', 'datetime',)
     list_filter = ('user', 'account', 'type', 'method', 'category',)
     search_fields = ('description',)
     autocomplete_fields = ('user', 'account', 'category',)
+
+    @admin.display(description='Categoria', ordering='category__description')
+    def category_display(self, obj):
+        return obj.category_display
 
 
 @admin.register(Transaction)
 class TransactionAdmin(VersionAdmin):
-    list_display = ('user', 'account', 'type', 'method', 'category', 'description', 'value', 'datetime',)
+    list_display = ('user', 'account', 'type', 'method', 'category_display', 'description', 'value', 'datetime',)
     list_filter = ('user', 'account', 'type', 'method', 'category',)
     search_fields = ('description',)
     autocomplete_fields = ('user', 'account', 'category',)
     actions = ('duplicate_transactions',)
+
+    @admin.display(description='Categoria', ordering='category__description')
+    def category_display(self, obj):
+        return obj.category_display
 
     @admin.action(description='Duplicar Transações selecionados', permissions=['add'])
     def duplicate_transactions(self, request, queryset):
