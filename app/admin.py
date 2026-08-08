@@ -3,7 +3,7 @@ from reversion.admin import VersionAdmin
 import reversion
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin, GroupAdmin as BaseGroupAdmin
 from django.contrib.auth.models import Group as BaseGroup
-from .models import User, Group, Account, Category, BusinessRule, Installment, Transaction
+from .models import User, Group, Account, Category, BusinessRule, Installment, Investment, Contribution, Redemption, Transaction
 
 
 # User Admin
@@ -80,6 +80,39 @@ class InstallmentAdmin(VersionAdmin):
         return obj.category_display
 
 
+class ContributionInline(admin.TabularInline):
+    model = Contribution
+    extra = 0
+    fields = ('value', 'datetime',)
+
+
+class RedemptionInline(admin.TabularInline):
+    model = Redemption
+    extra = 0
+    fields = ('value', 'datetime',)
+
+
+@admin.register(Investment)
+class InvestmentAdmin(VersionAdmin):
+    list_display = ('user', 'account', 'description', 'category_display', 'applied_value', 'redeemed_value',)
+    list_filter = ('user', 'account', 'category',)
+    search_fields = ('description',)
+    autocomplete_fields = ('user', 'account', 'category',)
+    inlines = (ContributionInline, RedemptionInline,)
+
+    @admin.display(description='Categoria', ordering='category__description')
+    def category_display(self, obj):
+        return obj.category_display
+
+    @admin.display(description='Total Aplicado')
+    def applied_value(self, obj):
+        return obj.applied_value
+
+    @admin.display(description='Total Resgatado')
+    def redeemed_value(self, obj):
+        return obj.redeemed_value
+
+
 @admin.register(Transaction)
 class TransactionAdmin(VersionAdmin):
     list_display = ('user', 'account', 'type', 'method', 'category_display', 'description', 'value', 'datetime',)
@@ -114,6 +147,6 @@ class TransactionAdmin(VersionAdmin):
         self.message_user(request, f'{count} transação(ões) duplicada(s) com sucesso.')
 
     def get_readonly_fields(self, request, obj=None):
-        if obj and obj.installment_id:
-            return ('user', 'account', 'type', 'method', 'category', 'description', 'value', 'installment', 'parcel', 'datetime',)
-        return ('installment', 'parcel',)
+        if obj and (obj.installment_id or obj.investment_id):
+            return ('user', 'account', 'type', 'method', 'category', 'description', 'value', 'installment', 'parcel', 'investment', 'contribution', 'redemption', 'datetime',)
+        return ('installment', 'parcel', 'investment', 'contribution', 'redemption',)
