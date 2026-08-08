@@ -70,7 +70,6 @@ class BusinessRuleAdmin(VersionAdmin):
     list_display = ('account', 'type', 'method',)
     list_filter = ('account', 'type', 'method',)
     search_fields = ('account__description',)
-    autocomplete_fields = ('account',)
 
 
 @admin.register(Installment)
@@ -78,7 +77,7 @@ class InstallmentAdmin(VersionAdmin):
     list_display = ('user', 'account', 'type', 'method', 'category_display', 'description', 'value', 'installments', 'datetime',)
     list_filter = ('user', 'account', 'type', 'method', 'category',)
     search_fields = ('description',)
-    autocomplete_fields = ('user', 'account', 'category',)
+    autocomplete_fields = ('category',)
 
     @admin.display(description='Categoria', ordering='category__description')
     def category_display(self, obj):
@@ -107,7 +106,7 @@ class InvestmentAdmin(VersionAdmin):
     list_display = ('user', 'account', 'description', 'category_display', 'applied_value', 'redeemed_value',)
     list_filter = ('user', 'account', 'category',)
     search_fields = ('description',)
-    autocomplete_fields = ('user', 'account', 'category',)
+    autocomplete_fields = ('category',)
     inlines = (ContributionInline, RedemptionInline,)
 
     @admin.display(description='Categoria', ordering='category__description')
@@ -133,7 +132,7 @@ class TransactionAdmin(VersionAdmin):
     list_display = ('user', 'account', 'type', 'method', 'category_display', 'description', 'value', 'datetime',)
     list_filter = ('user', 'account', 'type', 'method', 'category',)
     search_fields = ('description', 'external_id',)
-    autocomplete_fields = ('user', 'account', 'category',)
+    autocomplete_fields = ('category',)
     actions = ('duplicate_transactions',)
     change_list_template = 'admin/app/transaction/change_list.html'
 
