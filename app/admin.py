@@ -1,8 +1,13 @@
-from django.contrib import admin
+from django.contrib import admin, messages
+from django.contrib.admin import helpers
 from reversion.admin import VersionAdmin
 import reversion
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin, GroupAdmin as BaseGroupAdmin
 from django.contrib.auth.models import Group as BaseGroup
+from django.shortcuts import redirect
+from django.template.response import TemplateResponse
+from django.urls import path
+from .forms import TransactionImportForm
 from .models import User, Group, Account, Category, BusinessRule, Installment, Investment, Contribution, Redemption, Transaction
 
 
@@ -127,13 +132,52 @@ class InvestmentAdmin(VersionAdmin):
 class TransactionAdmin(VersionAdmin):
     list_display = ('user', 'account', 'type', 'method', 'category_display', 'description', 'value', 'datetime',)
     list_filter = ('user', 'account', 'type', 'method', 'category',)
-    search_fields = ('description',)
+    search_fields = ('description', 'external_id',)
     autocomplete_fields = ('user', 'account', 'category',)
     actions = ('duplicate_transactions',)
+    change_list_template = 'admin/app/transaction/change_list.html'
 
     @admin.display(description='Categoria', ordering='category__description')
     def category_display(self, obj):
         return obj.category_display
+
+    def get_urls(self):
+        return [
+            path('import/', self.admin_site.admin_view(self.import_transactions), name='app_transaction_import'),
+        ] + super().get_urls()
+
+    def import_transactions(self, request):
+        if not self.has_add_permission(request):
+            self.message_user(request, 'Você não tem permissão para importar transações.', messages.ERROR)
+            return redirect('admin:app_transaction_changelist')
+
+        if request.method == 'POST':
+            form = TransactionImportForm(request.POST, request.FILES)
+            if form.is_valid():
+                with reversion.create_revision():
+                    reversion.set_user(request.user)
+                    reversion.set_comment('Importado a partir de extrato do Nubank.')
+                    transactions = form.save()
+
+                message = f'{len(transactions)} transação(ões) importada(s) com sucesso.'
+                skipped = form.cleaned_data.get('skipped')
+                if skipped:
+                    message += f' {skipped} já constava(m) e foi(ram) ignorada(s).'
+
+                self.message_user(request, message)
+                return redirect('admin:app_transaction_changelist')
+        else:
+            form = TransactionImportForm()
+
+        context = {
+            **self.admin_site.each_context(request),
+            'opts': self.opts,
+            'title': 'Importar Transações',
+            'form': form,
+            'fieldset': helpers.Fieldset(form, fields=list(form.fields), classes=('wide',)),
+        }
+
+        return TemplateResponse(request, 'admin/app/transaction/import.html', context)
 
     @admin.action(description='Duplicar Transações selecionados', permissions=['add'])
     def duplicate_transactions(self, request, queryset):
@@ -158,5 +202,5 @@ class TransactionAdmin(VersionAdmin):
 
     def get_readonly_fields(self, request, obj=None):
         if obj and (obj.installment_id or obj.investment_id):
-            return ('user', 'account', 'type', 'method', 'category', 'description', 'value', 'installment', 'parcel', 'investment', 'contribution', 'redemption', 'datetime',)
-        return ('installment', 'parcel', 'investment', 'contribution', 'redemption',)
+            return ('user', 'account', 'type', 'method', 'category', 'description', 'value', 'installment', 'parcel', 'investment', 'contribution', 'redemption', 'datetime', 'external_id',)
+        return ('installment', 'parcel', 'investment', 'contribution', 'redemption', 'external_id',)
