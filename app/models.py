@@ -265,8 +265,6 @@ class Transaction(models.Model):
     value = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='Valor')
     datetime = models.DateTimeField(verbose_name='Data e Hora')
 
-    external_id = models.CharField(max_length=100, blank=True, null=True, verbose_name='Identificador Externo')
-
     installment = models.ForeignKey(Installment, on_delete=models.CASCADE, related_name='transactions', blank=True, null=True, verbose_name='Parcelamento')
     parcel = models.PositiveSmallIntegerField(blank=True, null=True, verbose_name='Parcela')
 
@@ -295,12 +293,5 @@ class Transaction(models.Model):
 
     class Meta:
         ordering = ['-datetime']
-        constraints = [
-            models.UniqueConstraint(
-                fields=['account', 'external_id'],
-                condition=models.Q(external_id__isnull=False),
-                name='unique_transaction_external_id_per_account',
-            ),
-        ]
         verbose_name = 'Transação'
         verbose_name_plural = 'Transações'
