@@ -16,6 +16,9 @@ reset-system:
 clean-system:
 	@cd deploy/ && docker compose down -v && docker system prune -a --volumes --force && cd .. && rm -rf database/ deploy/certbot/
 
+make-migrations:
+	@cd deploy/ && docker compose run --rm --no-deps -v "$(PWD)/app:/app/app" app python manage.py makemigrations $(app)
+
 create-superuser:
 	@cd deploy/ && \
 	docker compose exec app python manage.py shell -c "from app.models import User; User.objects.filter(username='admin').exists() or User.objects.create_superuser(username='admin', password='1234')"
