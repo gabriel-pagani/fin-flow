@@ -79,6 +79,11 @@ class InstallmentAdmin(VersionAdmin):
     def category_display(self, obj):
         return obj.category_display
 
+    def get_readonly_fields(self, request, obj=None):
+        if obj:
+            return ('user', 'account', 'type', 'method', 'category', 'description', 'value', 'installments', 'datetime',)
+        return ()
+
 
 class ContributionInline(admin.TabularInline):
     model = Contribution
@@ -111,6 +116,11 @@ class InvestmentAdmin(VersionAdmin):
     @admin.display(description='Total Resgatado')
     def redeemed_value(self, obj):
         return obj.redeemed_value
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj:
+            return ('user', 'account', 'category', 'description',)
+        return ()
 
 
 @admin.register(Transaction)
